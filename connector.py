@@ -86,24 +86,36 @@ def store_data(batch_data, conn, initialized):
 
         # Register the DataFrame
         conn.register("patients_temp", df)
+        # df.to_sql('patients_temp', conn, if_exists='replace', index=False)
+        result = conn.execute("SELECT * FROM patients_temp limit 5").fetchall()
+        print(f'echo temp table {result}')
 
         # Perform upsert (Update existing records and insert new ones)
         sql = """
             INSERT INTO patients
-            SELECT * FROM patients_temp
+            SELECT id,first_name,last_name,email,date_of_birth,
+            created_at,updated_at,total_visits,timestamp 
+            FROM patients_temp
             ON CONFLICT (id) DO UPDATE
             SET first_name = excluded.first_name,
                 last_name = excluded.last_name,
                 email = excluded.email,
                 updated_at = excluded.updated_at,
                 total_visits = excluded.total_visits,
-                timestamp = excluded.timestamp
+                timestamp = excluded.timestamp;
         """
+        # sql = """
+        #     INSERT INTO patients
+        #     SELECT id,first_name,last_name,email,date_of_birth,
+        #     created_at,updated_at,total_visits,timestamp 
+        #     FROM patients_temp
+        # """
         print(f"Executing SQL: {sql}")
         conn.execute(sql)
         print("Upsert completed successfully.")
 
     except Exception as e:
+        print(f'error:- {e}')
         logging.error("Error storing batch data", exc_info=True)
 
 
